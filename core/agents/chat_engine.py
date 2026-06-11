@@ -194,12 +194,13 @@ Answer:"""),
     #  PUBLIC API
     # ──────────────────────────────────────────
 
-    def chat(self, question: str) -> str:
+    def chat(self, question: str, use_memory: bool = True) -> str:
         """
         Main entry point — tanya sesuatu ke AI.
 
         Args:
             question: Pertanyaan user
+            use_memory: Jika False, tidak mencari di vector memory.
 
         Returns:
             AI response string
@@ -208,12 +209,15 @@ Answer:"""),
             return "Please ask a question."
 
         # Step 1: Retrieve context dari memory
-        context = self._retrieve_context(question)
-
-        if context:
-            print(f"[ChatEngine] Retrieved {self.top_k} context document(s).")
+        context = ""
+        if use_memory:
+            context = self._retrieve_context(question)
+            if context:
+                print(f"[ChatEngine] Retrieved {self.top_k} context document(s).")
+            else:
+                print("[ChatEngine] No context found — answering from general knowledge.")
         else:
-            print("[ChatEngine] No context found — answering from general knowledge.")
+            print("[ChatEngine] Memory bypass — answering directly.")
 
         # Step 2: Generate response
         try:

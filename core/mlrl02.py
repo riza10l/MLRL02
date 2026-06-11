@@ -45,6 +45,7 @@ from core.memory.loader import Document, load_markdown
 
 # ── Layer 3: Reasoning ──
 from core.reasoning.query import RetrievalEngine
+from core.reasoning.query_classifier import QueryClassifier
 from core.reasoning.reasoning_engine import ReasoningEngine
 from core.reasoning.reflection_engine import ReflectionEngine
 from core.reasoning.prompt_builder import PromptBuilder
@@ -90,11 +91,13 @@ class MLRL02:
         self,
         workspace_dir: Optional[str] = None,
         model: str = "llama3",
+        verbose: bool = True,
     ):
         self.workspace_dir = workspace_dir or WORKSPACE_DIR
         self.markdown_dir = os.path.join(self.workspace_dir, "markdown")
         self.embeddings_dir = os.path.join(self.workspace_dir, "embeddings")
         self.model = model
+        self.verbose = verbose
 
         # Initialized on boot()
         self._booted = False
@@ -107,6 +110,7 @@ class MLRL02:
 
         # Layer 3: Reasoning
         self.prompt_builder: Optional[PromptBuilder] = None
+        self.classifier: Optional[QueryClassifier] = None
         self.reasoning: Optional[ReasoningEngine] = None
         self.reflection: Optional[ReflectionEngine] = None
 
@@ -163,6 +167,7 @@ class MLRL02:
         if verbose:
             print("[2/4] Initializing reasoning subsystem...")
         self.prompt_builder = PromptBuilder(model=self.model)
+        self.classifier = QueryClassifier(verbose=self.verbose)
         self.reasoning = ReasoningEngine(
             memory=self.memory,
             prompt_builder=self.prompt_builder,
@@ -201,6 +206,31 @@ class MLRL02:
     # ──────────────────────────────────────────
     #  HIGH-LEVEL OPERATIONS
     # ──────────────────────────────────────────
+
+    def route_query(self, question: str) -> str:
+        """
+        Intelligently route a query to the appropriate path.
+        
+        If the query is project-related, it routes to the reasoning engine (memory).
+        Otherwise, it routes to the chat engine (general).
+
+        Returns:
+            AI response string
+        """
+        self._ensure_booted()
+        
+        category = self.classifier.classify(question)
+        
+        if category == "memory":
+            if self.verbose:
+                print(f"[MLRL02] 🧠 Routing to memory: '{question}'")
+            # Use reasoning engine with LLM generation for better answers
+            result = self.reasoning.reason(question, use_llm=True)
+            return result.answer
+        else:
+            if self.verbose:
+                print(f"[MLRL02] 🌐 Routing to general: '{question}'")
+            return self.chat.chat(question, use_memory=False)
 
     def chat_with_ai(self, question: str, use_agent: bool = False) -> str:
         """
@@ -366,6 +396,7 @@ class MLRL02:
                 "vector_count": self.vector_store.count() if self.vector_store else 0,
                 "available": self.memory.is_available() if self.memory else False,
             },
+            "classifier": "ready" if self.classifier else "not_initialized",
             "reinforcement": self.reinforcement.stats() if self.reinforcement else {},
             "knowledge": {
                 "graph_nodes": self.knowledge_graph.node_count if self.knowledge_graph else 0,

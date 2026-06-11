@@ -183,7 +183,7 @@ def cmd_status():
     system.boot()
 
     print("\n" + "=" * 50)
-    print("  🧠 MLRL02 — System Status")
+    print("   MLRL02 — System Status")
     print("=" * 50 + "\n")
 
     stats = system.status()

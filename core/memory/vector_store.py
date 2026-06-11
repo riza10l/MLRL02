@@ -203,10 +203,6 @@ class VectorStore:
 
         return output
 
-    # ──────────────────────────────────────────
-    #  DELETE
-    # ──────────────────────────────────────────
-
     def delete_document(self, doc_id: str):
         """Hapus dokumen berdasarkan ID."""
         self.collection.delete(ids=[doc_id])

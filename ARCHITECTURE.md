@@ -1,6 +1,9 @@
 # MLRL02 — System Architecture
 
 > Adaptive AI Memory & Reasoning Workspace
+'''
+author : Riza Wahyu Nugraha
+'''
 
 ```
 Version: 2.0

@@ -7,6 +7,7 @@ Usage:
 
 __all__ = [
     "RetrievalEngine",
+    "QueryClassifier",
     "ReasoningEngine",
     "ReasoningResult",
     "ReflectionEngine",
@@ -24,6 +25,9 @@ def __getattr__(name):
     if name == "RetrievalEngine":
         from core.reasoning.query import RetrievalEngine as _RE
         return _RE
+    if name == "QueryClassifier":
+        from core.reasoning.query_classifier import QueryClassifier as _QC
+        return _QC
     if name in ("ReasoningEngine", "ReasoningResult"):
         from core.reasoning.reasoning_engine import ReasoningEngine, ReasoningResult
         return {"ReasoningEngine": ReasoningEngine,

@@ -64,7 +64,7 @@ STOP_WORDS = frozenset({
     "most", "other", "some", "such", "no", "only", "own",
     "same", "than", "too", "very", "just", "also", "now",
     "that", "this", "these", "those", "it", "its", "they",
-    "them", "we", "us", "our", "you", "your", "he", "him",
+    "them", "we", "us", "our", "you", "your", "he", "him",                                                              # still weak on the memory
     "his", "she", "her", "what", "which", "who", "whom",
     "when", "where", "why", "how", "if", "then", "else",
     "there", "here", "one", "two", "first", "second",

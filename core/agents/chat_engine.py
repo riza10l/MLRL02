@@ -39,6 +39,7 @@ COLLECTION_NAME = "mlrl_memory"
 
 DEFAULT_MODEL = "llama3"
 DEFAULT_TOP_K = 3  # Jumlah context dokumen yang diretriev
+MAX_HISTORY_TURNS = 10  # Maximum conversation turns to keep
 
 # System prompt — instruksi dasar untuk AI behavior
 SYSTEM_PROMPT = """\
@@ -71,10 +72,12 @@ class ChatEngine:
         persist_dir: Optional[str] = None,
         model: str = DEFAULT_MODEL,
         top_k: int = DEFAULT_TOP_K,
+        client=None,
     ):
         self.persist_dir = persist_dir or PERSIST_DIR
         self.model = model
         self.top_k = top_k
+        self._client = client  # Shared ChromaDB client
         self.history: list[dict] = []  # [{"role": "user"/"ai", "content": "..."}]
 
         self._init_llm()
@@ -105,11 +108,11 @@ class ChatEngine:
             return
 
         try:
-            client = chromadb.PersistentClient(path=self.persist_dir)
+            chroma_client = self._client or chromadb.PersistentClient(path=self.persist_dir)
             self.vectorstore = Chroma(
                 collection_name=COLLECTION_NAME,
                 embedding_function=self.embeddings,
-                client=client,
+                client=chroma_client,
             )
             count = self.vectorstore._collection.count()
             print(f"[ChatEngine] ChromaDB ready — {count} documents in memory.")
@@ -194,13 +197,14 @@ Answer:"""),
     #  PUBLIC API
     # ──────────────────────────────────────────
 
-    def chat(self, question: str, use_memory: bool = True) -> str:
+    def chat(self, question: str, use_memory: bool = True, external_context: str = None) -> str:
         """
         Main entry point — tanya sesuatu ke AI.
 
         Args:
             question: Pertanyaan user
             use_memory: Jika False, tidak mencari di vector memory.
+            external_context: Optional additional context.
 
         Returns:
             AI response string
@@ -219,6 +223,12 @@ Answer:"""),
         else:
             print("[ChatEngine] Memory bypass — answering directly.")
 
+        if external_context:
+            if context:
+                context += "\n\n" + external_context
+            else:
+                context = external_context
+
         # Step 2: Generate response
         try:
             response = self._build_chain(question, context)
@@ -228,6 +238,10 @@ Answer:"""),
         # Step 3: Update history
         self.history.append({"role": "user", "content": question})
         self.history.append({"role": "ai", "content": response})
+
+        # Truncate history to prevent unbounded growth / token overflow
+        if len(self.history) > MAX_HISTORY_TURNS * 2:
+            self.history = self.history[-(MAX_HISTORY_TURNS * 2):]
 
         return response
 

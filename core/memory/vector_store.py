@@ -49,6 +49,7 @@ class VectorStore:
         persist_dir: Optional[str] = None,
         model_name: str = DEFAULT_MODEL,
         collection_name: str = COLLECTION_NAME,
+        client: Optional[chromadb.ClientAPI] = None,
     ):
         self.persist_dir = persist_dir or EMBEDDINGS_DIR
         self.collection_name = collection_name
@@ -61,8 +62,11 @@ class VectorStore:
         self.model = SentenceTransformer(model_name)
 
         # ── Init ChromaDB (persistent) ──
-        print(f"[VectorStore] Initializing ChromaDB at: {self.persist_dir}")
-        self.client = chromadb.PersistentClient(path=self.persist_dir)
+        if client:
+            self.client = client
+        else:
+            print(f"[VectorStore] Initializing ChromaDB at: {self.persist_dir}")
+            self.client = chromadb.PersistentClient(path=self.persist_dir)
         self.collection = self.client.get_or_create_collection(
             name=self.collection_name,
             metadata={"hnsw:space": "cosine"},  # cosine similarity
@@ -156,7 +160,11 @@ class VectorStore:
 
         documents = []
         for doc in docs:
-            doc_id = f"{doc.metadata.get('source', 'unknown')}__{len(documents)}"
+            source = doc.metadata.get('source', 'unknown')
+            # Deterministic ID: hash of source + content for stable, unique IDs
+            import hashlib
+            content_hash = hashlib.sha256(doc.page_content.encode()).hexdigest()[:12]
+            doc_id = f"{source}__{content_hash}"
             documents.append({
                 "id": doc_id,
                 "text": doc.page_content,

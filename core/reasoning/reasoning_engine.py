@@ -39,12 +39,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
-# Ensure project root is on path for imports
-_project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+# Project root sys.path hack removed from module level (M-1)
 
 from core.memory.memory_context import MemoryContext, ContextItem
 from core.reasoning.prompt_builder import PromptBuilder
@@ -76,7 +71,7 @@ class QuestionAnalysis:
 
 
 @dataclass
-class ConceptLink:
+class ReasoningConceptLink:
     """
     A discovered relationship between concepts in memory.
 
@@ -127,7 +122,7 @@ class ReasoningResult:
     question: str
     analysis: QuestionAnalysis
     reasoning_steps: list[ReasoningStep] = field(default_factory=list)
-    concept_links: list[ConceptLink] = field(default_factory=list)
+    concept_links: list[ReasoningConceptLink] = field(default_factory=list)
     contexts_used: list[ContextItem] = field(default_factory=list)
     confidence: float = 0.0
 
@@ -360,7 +355,7 @@ class MemoryExplorer:
         self,
         analysis: QuestionAnalysis,
         max_contexts: int = 8,
-    ) -> tuple[list[ContextItem], list[ConceptLink]]:
+    ) -> tuple[list[ContextItem], list[ReasoningConceptLink]]:
         """
         Run multiple retrieval queries and merge results.
 
@@ -406,14 +401,14 @@ class MemoryExplorer:
         self,
         key_terms: list[str],
         contexts: list[ContextItem],
-    ) -> list[ConceptLink]:
+    ) -> list[ReasoningConceptLink]:
         """
         Find relationships between concepts across contexts.
 
         Strategy: for each key term, check which other terms
         appear in the same context chunk. Co-occurrence = link.
     """
-        links: list[ConceptLink] = []
+        links: list[ReasoningConceptLink] = []
 
         for ctx in contexts:
             text_lower = ctx.text.lower()
@@ -440,7 +435,7 @@ class MemoryExplorer:
                             for l in links
                         )
                         if not exists:
-                            links.append(ConceptLink(
+                            links.append(ReasoningConceptLink(
                                 source_concept=term_a,
                                 related_concept=term_b,
                                 connection_strength=round(strength, 3),
@@ -469,7 +464,7 @@ class ReasoningChainBuilder:
         self,
         analysis: QuestionAnalysis,
         contexts: list[ContextItem],
-        concept_links: list[ConceptLink],
+        concept_links: list[ReasoningConceptLink],
     ) -> list[ReasoningStep]:
         """
         Build the full reasoning chain.
@@ -583,9 +578,11 @@ class ReasoningEngine:
         self,
         memory: Optional[MemoryContext] = None,
         prompt_builder: Optional[PromptBuilder] = None,
+        model: str = "llama3",
     ):
         self.memory = memory or MemoryContext()
-        self.prompt_builder = prompt_builder or PromptBuilder()
+        self.prompt_builder = prompt_builder or PromptBuilder(model=model)
+        self.model = self.prompt_builder.model
 
         # Pipeline stages (created per call for clean state)
         self._analyzer = QuestionAnalyzer()
@@ -665,7 +662,7 @@ class ReasoningEngine:
         question: str,
         analysis: QuestionAnalysis,
         contexts: list[ContextItem],
-        concept_links: list[ConceptLink],
+        concept_links: list[ReasoningConceptLink],
     ) -> str:
         """
         Generate an answer using only retrieved context (no LLM).
@@ -715,7 +712,7 @@ class ReasoningEngine:
         question: str,
         analysis: QuestionAnalysis,
         contexts: list[ContextItem],
-        concept_links: list[ConceptLink],
+        concept_links: list[ReasoningConceptLink],
     ) -> str:
         """
         Generate answer using LLM with built prompt.
@@ -724,8 +721,6 @@ class ReasoningEngine:
         """
         # Build prompt with reasoning context
         pb = self.prompt_builder
-        pb.clear_memory()
-        pb.clear_history()
         pb.reset()
 
         # Add retrieved contexts
@@ -753,7 +748,7 @@ class ReasoningEngine:
 
         try:
             from langchain_ollama.llms import OllamaLLM
-            llm = OllamaLLM(model="llama3", temperature=0.7)
+            llm = OllamaLLM(model=self.model, temperature=0.7)
             chain = prompt | llm
             response = chain.invoke(values)
             return response
@@ -770,7 +765,7 @@ class ReasoningEngine:
     def _calculate_confidence(
         self,
         contexts: list[ContextItem],
-        concept_links: list[ConceptLink],
+        concept_links: list[ReasoningConceptLink],
         analysis: QuestionAnalysis,
     ) -> float:
         """
@@ -897,6 +892,14 @@ class ReasoningEngine:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     print("=" * 60)
     print("  REASONING ENGINE — Quick Test")
     print("=" * 60 + "\n")

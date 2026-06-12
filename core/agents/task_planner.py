@@ -29,12 +29,7 @@ from enum import Enum
 from typing import Optional
 from datetime import datetime
 
-# Ensure project root is on path
-_project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+# Project root sys.path hack removed from module level (M-1)
 
 
 # ──────────────────────────────────────────────
@@ -285,45 +280,45 @@ class GoalDecomposer:
             "strategy": PlanningStrategy.ITERATIVE,
             "pattern": r"\b(learn|study|understand|master)\b",
             "steps": [
-                ("Gather knowledge", "Read and collect relevant information", "high", []),
-                ("Extract key concepts", "Identify and list important concepts", "high", [1]),
-                ("Organize knowledge", "Structure concepts into a coherent framework", "medium", [2]),
-                ("Create practice tasks", "Design exercises to reinforce understanding", "medium", [3]),
-                ("Review and refine", "Iterate on knowledge and fill gaps", "medium", [4]),
+                ("Gather knowledge", "Read and collect relevant information", TaskPriority.HIGH, []),
+                ("Extract key concepts", "Identify and list important concepts", TaskPriority.HIGH, [1]),
+                ("Organize knowledge", "Structure concepts into a coherent framework", TaskPriority.MEDIUM, [2]),
+                ("Create practice tasks", "Design exercises to reinforce understanding", TaskPriority.MEDIUM, [3]),
+                ("Review and refine", "Iterate on knowledge and fill gaps", TaskPriority.MEDIUM, [4]),
             ],
         },
         "build": {
             "strategy": PlanningStrategy.SEQUENTIAL,
             "pattern": r"\b(build|create|develop|make|implement)\b",
             "steps": [
-                ("Define requirements", "Clarify what needs to be built and why", "critical", []),
-                ("Research approach", "Study possible solutions and technologies", "high", [1]),
-                ("Design architecture", "Plan the structure and components", "high", [2]),
-                ("Implement core", "Build the main functionality", "critical", [3]),
-                ("Test and validate", "Verify the implementation works correctly", "high", [4]),
-                ("Refine and document", "Polish and write documentation", "medium", [5]),
+                ("Define requirements", "Clarify what needs to be built and why", TaskPriority.CRITICAL, []),
+                ("Research approach", "Study possible solutions and technologies", TaskPriority.HIGH, [1]),
+                ("Design architecture", "Plan the structure and components", TaskPriority.HIGH, [2]),
+                ("Implement core", "Build the main functionality", TaskPriority.CRITICAL, [3]),
+                ("Test and validate", "Verify the implementation works correctly", TaskPriority.HIGH, [4]),
+                ("Refine and document", "Polish and write documentation", TaskPriority.MEDIUM, [5]),
             ],
         },
         "analyze": {
             "strategy": PlanningStrategy.SEQUENTIAL,
             "pattern": r"\b(analyze|review|examine|investigate|audit)\b",
             "steps": [
-                ("Collect data", "Gather all relevant information and sources", "high", []),
-                ("Identify patterns", "Find recurring themes and structures", "high", [1]),
-                ("Evaluate findings", "Assess quality and relevance of findings", "medium", [2]),
-                ("Draw conclusions", "Synthesize insights and recommendations", "high", [3]),
-                ("Report results", "Document the analysis and conclusions", "medium", [4]),
+                ("Collect data", "Gather all relevant information and sources", TaskPriority.HIGH, []),
+                ("Identify patterns", "Find recurring themes and structures", TaskPriority.HIGH, [1]),
+                ("Evaluate findings", "Assess quality and relevance of findings", TaskPriority.MEDIUM, [2]),
+                ("Draw conclusions", "Synthesize insights and recommendations", TaskPriority.HIGH, [3]),
+                ("Report results", "Document the analysis and conclusions", TaskPriority.MEDIUM, [4]),
             ],
         },
         "solve": {
             "strategy": PlanningStrategy.ITERATIVE,
             "pattern": r"\b(solve|fix|debug|resolve|troubleshoot)\b",
             "steps": [
-                ("Reproduce the issue", "Understand and recreate the problem", "critical", []),
-                ("Identify root cause", "Trace the source of the problem", "critical", [1]),
-                ("Design solution", "Plan the fix approach", "high", [2]),
-                ("Implement fix", "Apply the solution", "high", [3]),
-                ("Verify resolution", "Confirm the problem is solved", "critical", [4]),
+                ("Reproduce the issue", "Understand and recreate the problem", TaskPriority.CRITICAL, []),
+                ("Identify root cause", "Trace the source of the problem", TaskPriority.CRITICAL, [1]),
+                ("Design solution", "Plan the fix approach", TaskPriority.HIGH, [2]),
+                ("Implement fix", "Apply the solution", TaskPriority.HIGH, [3]),
+                ("Verify resolution", "Confirm the problem is solved", TaskPriority.CRITICAL, [4]),
             ],
         },
     }
@@ -380,7 +375,7 @@ class GoalDecomposer:
         plan = Plan(goal=goal, strategy=strategy)
 
         for i, (title, desc, priority_str, deps) in enumerate(template["steps"], 1):
-            priority = TaskPriority[priority_str.upper()]
+            priority = TaskPriority[priority_str.upper()] if isinstance(priority_str, str) else priority_str
             task = Task(
                 id=i,
                 title=title,
@@ -431,15 +426,15 @@ class GoalDecomposer:
         )
 
         generic_steps = [
-            ("Understand the goal", "Clarify requirements and scope", "high", []),
-            ("Research and gather info", "Collect relevant knowledge and resources", "high", [1]),
-            ("Break into sub-tasks", "Decompose into smaller actionable items", "high", [2]),
-            ("Execute plan", "Work through each sub-task systematically", "critical", [3]),
-            ("Review results", "Evaluate outcomes and identify improvements", "medium", [4]),
+            ("Understand the goal", "Clarify requirements and scope", TaskPriority.HIGH, []),
+            ("Research and gather info", "Collect relevant knowledge and resources", TaskPriority.HIGH, [1]),
+            ("Break into sub-tasks", "Decompose into smaller actionable items", TaskPriority.HIGH, [2]),
+            ("Execute plan", "Work through each sub-task systematically", TaskPriority.CRITICAL, [3]),
+            ("Review results", "Evaluate outcomes and identify improvements", TaskPriority.MEDIUM, [4]),
         ]
 
         for i, (title, desc, priority_str, deps) in enumerate(generic_steps, 1):
-            priority = TaskPriority[priority_str.upper()]
+            priority = TaskPriority[priority_str.upper()] if isinstance(priority_str, str) else priority_str
             task = Task(
                 id=i,
                 title=title,
@@ -619,6 +614,14 @@ class TaskPlanner:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     print("=" * 60)
     print("  TASK PLANNER — Quick Test")
     print("=" * 60 + "\n")

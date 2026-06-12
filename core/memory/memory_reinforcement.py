@@ -40,12 +40,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from collections import defaultdict
 
-# Ensure project root is on path
-_project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+# Project root sys.path hack removed from module level (M-1)
 
 from core.memory.memory_context import MemoryContext, ContextItem
 
@@ -543,6 +538,14 @@ class MemoryReinforcement:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     print("=" * 60)
     print("  MEMORY REINFORCEMENT — Quick Test")
     print("=" * 60 + "\n")

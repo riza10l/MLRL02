@@ -353,42 +353,23 @@ class PromptBuilder:
             ChatPromptTemplate with all sections wired in
         """
         system_text = self._build_system_section()
-        memory_text = self._build_memory_section()
 
         # Determine context placement based on model profile
         if self.profile.get("context_first", True):
-            # Memory before history — model sees context first
+            # Memory before question
             human_template = (
                 "Here is the relevant context from memory:\n\n"
                 "{memory}\n\n"
-                "{history_marker}"
                 "Question: {question}\n\n"
                 "Answer:"
             )
         else:
-            # History before context — for models that prefer flow
             human_template = (
-                "{history_marker}"
                 "Here is relevant context:\n\n"
                 "{memory}\n\n"
                 "Question: {question}\n\n"
                 "Answer:"
             )
-
-        # History marker — only show if there's actual history
-        if self._history:
-            history_marker = "Previous conversation:\n{history}\n\n"
-        else:
-            history_marker = ""
-            human_template = human_template.replace("{history_marker}", "")
-            return ChatPromptTemplate.from_messages([
-                ("system", system_text),
-                ("human", human_template),
-            ])
-
-        human_template = human_template.replace(
-            "{history_marker}", history_marker
-        )
 
         return ChatPromptTemplate.from_messages([
             ("system", system_text),

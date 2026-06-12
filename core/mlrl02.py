@@ -32,10 +32,9 @@ import os
 import sys
 from typing import Optional
 
-# Ensure project root is on path
-_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+import chromadb
+
+# Project root sys.path hack removed from module level (M-1)
 
 # ── Layer 2: Memory ──
 from core.memory.vector_store import VectorStore
@@ -63,7 +62,7 @@ from core.agents.workspace_agent import WorkspaceAgent
 #  CONFIG
 # ──────────────────────────────────────────────
 
-BASE_DIR = _project_root
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKSPACE_DIR = os.path.join(BASE_DIR, "workspace")
 MARKDOWN_DIR = os.path.join(WORKSPACE_DIR, "markdown")
 EMBEDDINGS_DIR = os.path.join(WORKSPACE_DIR, "embeddings")
@@ -150,11 +149,18 @@ class MLRL02:
         # Layer 2: Memory
         if verbose:
             print("[1/4] Initializing memory subsystem...")
+
+        # Create a single shared ChromaDB client for all modules
+        os.makedirs(self.embeddings_dir, exist_ok=True)
+        self._chroma_client = chromadb.PersistentClient(path=self.embeddings_dir)
+
         self.vector_store = VectorStore(
             persist_dir=self.embeddings_dir,
+            client=self._chroma_client,
         )
         self.memory = MemoryContext(
             persist_dir=self.embeddings_dir,
+            client=self._chroma_client,
         )
         self.reinforcement = MemoryReinforcement(
             memory=self.memory,
@@ -185,6 +191,7 @@ class MLRL02:
             print("[4/4] Initializing agent subsystem...")
         self.chat = ChatEngine(
             model=self.model,
+            client=self._chroma_client,
         )
         self.planner = TaskPlanner()
         self.agent_loop = AgentLoop(
@@ -232,7 +239,7 @@ class MLRL02:
                 print(f"[MLRL02] 🌐 Routing to general: '{question}'")
             return self.chat.chat(question, use_memory=False)
 
-    def chat_with_ai(self, question: str, use_agent: bool = False) -> str:
+    def chat_with_ai(self, question: str, use_agent: bool = False, external_context: str = None) -> str:
         """
         Chat with the AI system.
 
@@ -240,6 +247,7 @@ class MLRL02:
             question:    User's question
             use_agent:   If True, use full AgentLoop (slower but more thorough).
                          If False, use direct ChatEngine (faster).
+            external_context: Optional additional context.
 
         Returns:
             AI response string
@@ -250,7 +258,7 @@ class MLRL02:
             result = self.agent_loop.execute(question)
             return result.final_answer
         else:
-            return self.chat.chat(question)
+            return self.chat.chat(question, external_context=external_context)
 
     def search_memory(
         self,
@@ -425,6 +433,12 @@ class MLRL02:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     system = MLRL02()
     system.boot()
 

@@ -12,8 +12,7 @@ import os
 import sys
 from typing import Optional
 
-# Tambah parent path supaya bisa import dari core/
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Project root sys.path hack removed from module level (M-1)
 
 from core.memory.vector_store import VectorStore
 
@@ -65,8 +64,8 @@ class RetrievalEngine:
         print(f"  ✅ Found {len(results)} relevant document(s):\n")
         for i, r in enumerate(results, 1):
             distance = r.get("distance", 0)
-            # Cosine distance → similarity (lower distance = more similar)
-            similarity = 1 - distance if distance is not None else 0
+            # Cosine distance → similarity (ChromaDB cosine distance is [0, 2])
+            similarity = 1 - (distance / 2) if distance is not None else 0
             source = r.get("metadata", {}).get("filename", "unknown")
 
             print(f"  [{i}] (similarity: {similarity:.2%}) [{source}]")
@@ -125,6 +124,14 @@ class RetrievalEngine:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     print("=" * 60)
     print("  RETRIEVAL ENGINE — Quick Test")
     print("=" * 60)

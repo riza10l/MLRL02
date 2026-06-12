@@ -33,12 +33,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from collections import Counter
 
-# Ensure project root is on path
-_project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+# Project root sys.path hack removed from module level (M-1)
 
 from core.memory.loader import Document, load_markdown
 
@@ -50,31 +45,8 @@ from core.memory.loader import Document, load_markdown
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MARKDOWN_DIR = os.path.join(BASE_DIR, "workspace", "markdown")
 
-# Stop words for concept extraction
-STOP_WORDS = frozenset({
-    "a", "an", "the", "is", "are", "was", "were", "be", "been",
-    "being", "have", "has", "had", "do", "does", "did", "will",
-    "would", "could", "should", "may", "might", "shall", "can",
-    "need", "must", "of", "in", "to", "for", "with", "on", "at",
-    "from", "by", "about", "as", "into", "like", "through",
-    "after", "over", "between", "out", "against", "during",
-    "without", "before", "under", "around", "among", "and",
-    "but", "or", "nor", "not", "so", "yet", "both", "either",
-    "neither", "each", "every", "all", "any", "few", "more",
-    "most", "other", "some", "such", "no", "only", "own",
-    "same", "than", "too", "very", "just", "also", "now",
-    "that", "this", "these", "those", "it", "its", "they",
-    "them", "we", "us", "our", "you", "your", "he", "him",                                                              # still weak on the memory
-    "his", "she", "her", "what", "which", "who", "whom",
-    "when", "where", "why", "how", "if", "then", "else",
-    "there", "here", "one", "two", "first", "second",
-    # Indonesian
-    "apa", "itu", "yang", "dan", "atau", "dari", "untuk",
-    "dengan", "pada", "dalam", "adalah", "bagaimana", "cara",
-    "bisa", "tidak", "ini", "jika", "karena", "oleh",
-    "tentang", "juga", "sudah", "akan", "secara", "merupakan",
-    "akan", "memiliki", "yaitu", "sehingga", "agar",
-})
+# Stop words for concept extraction (imported from shared constants)
+from core.reasoning.constants import STOP_WORDS
 
 # Minimum concept frequency to be considered "significant"
 MIN_CONCEPT_FREQ = 1
@@ -824,6 +796,14 @@ class ConceptLinker:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     print("=" * 60)
     print("  CONCEPT LINKER — Quick Test")
     print("=" * 60 + "\n")

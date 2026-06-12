@@ -39,12 +39,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
-# Ensure project root is on path
-_project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+# Project root sys.path hack removed from module level (M-1)
 
 from core.memory.memory_context import ContextItem
 
@@ -240,7 +235,7 @@ class RelevanceScorer:
 
     def _extract_terms(self, text: str) -> list[str]:
         """Extract meaningful terms from text."""
-        from core.reasoning.concept_linker import STOP_WORDS
+        from core.reasoning.constants import STOP_WORDS
         tokens = re.findall(r'\w+', text.lower())
         terms = [
             t for t in tokens
@@ -508,10 +503,21 @@ class AccuracyScorer:
                 words = clean_negation.split()
                 if len(words) >= 2:
                     key_word = words[-1]  # The word being negated
-                    if key_word in ctx_lower and key_word not in answer.lower():
-                        contradictions.append(
-                            f"Answer negates '{key_word}' but context mentions it"
+                    # Answer negates key_word, but context affirms it
+                    # (key_word appears in context without negation nearby)
+                    if key_word in ctx_lower:
+                        # Check context does NOT also negate this word
+                        ctx_has_negation = any(
+                            re.search(
+                                rf'\b(not|no|never|tidak|bukan)\b\s+\w*{re.escape(key_word)}',
+                                ctx_lower,
+                            )
+                            for _ in [1]  # single check
                         )
+                        if not ctx_has_negation:
+                            contradictions.append(
+                                f"Answer negates '{key_word}' but context affirms it"
+                            )
 
         return contradictions
 
@@ -886,6 +892,14 @@ class ReflectionEngine:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     print("=" * 60)
     print("  REFLECTION ENGINE — Quick Test")
     print("=" * 60 + "\n")

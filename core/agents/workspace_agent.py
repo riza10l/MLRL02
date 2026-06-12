@@ -41,12 +41,10 @@ from typing import Optional
 from datetime import datetime
 from collections import Counter, defaultdict
 
-# Ensure project root is on path
+# Calculate project root for configuration constants (M-1 cleanup)
 _project_root = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
 
 from core.memory.loader import Document, load_markdown
 from core.reasoning.concept_linker import ConceptLinker, ConceptGraph
@@ -828,6 +826,14 @@ class WorkspaceAgent:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     print("=" * 60)
     print("  WORKSPACE AGENT — Quick Test")
     print("=" * 60 + "\n")

@@ -200,21 +200,23 @@ Ranked Contexts → LLM generates answer
 
 | Layer | Module | Classes | Lines |
 |-------|--------|---------|-------|
-| **L4: Orchestration** | `agent_loop.py` | `AgentLoop`, `AgentResult`, `ToolRegistry` | 701 |
-| | `workspace_agent.py` | `WorkspaceAgent`, `ProjectScanner`, `DocGenerator` | 851 |
-| | `task_planner.py` | `TaskPlanner`, `GoalDecomposer`, `Plan` | 677 |
+| **L4: Orchestration** | `agent_loop.py` | `AgentLoop`, `AgentResult`, `ToolRegistry` | 741 |
+| | `workspace_agent.py` | `WorkspaceAgent`, `ProjectScanner`, `DocGenerator` | 853 |
+| | `task_planner.py` | `TaskPlanner`, `GoalDecomposer`, `Plan` | 679 |
 | **L3: Reasoning** | `reasoning_engine.py` | `ReasoningEngine`, `QuestionAnalyzer`, `MemoryExplorer` | 917 |
-| | `reflection_engine.py` | `ReflectionEngine`, `RelevanceScorer`, `AccuracyScorer` | 939 |
-| | `prompt_builder.py` | `PromptBuilder`, `LLM_PROFILES` | 514 |
-| | `concept_linker.py` | `ConceptLinker`, `ConceptGraph`, `ConceptExtractor` | 857 |
-| | `knowledge_graph.py` | `KnowledgeGraph`, `GraphNode`, `GraphEdge` | 845 |
-| **L2: Memory** | `vector_store.py` | `VectorStore` | 268 |
-| | `memory_context.py` | `MemoryContext`, `ContextItem` | 510 |
-| | `memory_reinforcement.py` | `MemoryReinforcement`, `MemoryRecord` | 600 |
-| | `loader.py` | `Document`, `load_markdown()`, `extract_frontmatter()` | 150 |
-| **L4: Chat** | `chat_engine.py` | `ChatEngine` | 301 |
-| **L2: Query** | `query.py` | `RetrievalEngine` | 185 |
-| **Total** | **18 files** | **64 classes** | **~8,565 lines** |
+| | `reflection_engine.py` | `ReflectionEngine`, `RelevanceScorer`, `AccuracyScorer` | 952 |
+| | `prompt_builder.py` | `PromptBuilder`, `LLM_PROFILES` | 494 |
+| | `concept_linker.py` | `ConceptLinker`, `ConceptGraph`, `ConceptExtractor` | 836 |
+| | `knowledge_graph.py` | `KnowledgeGraph`, `GraphNode`, `GraphEdge` | 847 |
+| | `query_classifier.py` | `QueryClassifier` | 144 |
+| | `constants.py` | `STOP_WORDS` | 32 |
+| **L2: Memory** | `vector_store.py` | `VectorStore` | 271 |
+| | `memory_context.py` | `MemoryContext`, `ContextItem` | 514 |
+| | `memory_reinforcement.py` | `MemoryReinforcement`, `MemoryRecord` | 602 |
+| | `loader.py` | `Document`, `load_markdown()`, `extract_frontmatter()` | 148 |
+| **L4: Chat** | `chat_engine.py` | `ChatEngine` | 319 |
+| **L2: Query** | `query.py` | `RetrievalEngine` | 191 |
+| **Total** | **16 files** | **66 classes** | **~8,540 lines** |
 
 ---
 

@@ -39,12 +39,7 @@ from enum import Enum
 from typing import Optional
 from datetime import datetime
 
-# Ensure project root is on path
-_project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+# Project root sys.path hack removed from module level (M-1)
 
 from core.memory.memory_context import MemoryContext, ContextItem
 from core.reasoning.reasoning_engine import ReasoningEngine, ReasoningResult
@@ -441,9 +436,14 @@ class AgentLoop:
         """
         Stage: REASON
         Build a reasoning chain for the goal.
+
+        Note: We explicitly pass use_llm=False here to perform context analysis
+        and concept linking locally. The actual LLM text generation is deferred
+        to the ACT stage (_stage_act) to prevent duplicate LLM calls.
         """
         self._log(AgentStage.REASON, "Building reasoning chain")
 
+        # Local cognitive reasoning to build contexts & concept links
         result = self.reasoning.reason(goal, use_llm=False)
 
         self._log(
@@ -469,9 +469,31 @@ class AgentLoop:
         self._log(AgentStage.ACT, "Generating response")
 
         if use_llm:
-            # Use ChatEngine for robust LLM generation
+            # Build enriched context from reasoning results to pass to ChatEngine
             self._log(AgentStage.ACT, "Using ChatEngine for LLM generation")
-            answer = self.chat.chat(goal)
+
+            # Combine reasoning contexts into an external_context string
+            context_parts = []
+            used_contexts = reasoning_result.contexts_used or contexts
+            for ctx in used_contexts[:5]:
+                context_parts.append(
+                    f"[{ctx.source}] (relevance: {ctx.score:.0%})\n{ctx.text}"
+                )
+
+            # Add concept links if discovered
+            if reasoning_result.concept_links:
+                link_parts = []
+                for link in reasoning_result.concept_links:
+                    link_parts.append(
+                        f"- {link.source_concept} ↔ {link.related_concept} "
+                        f"(strength: {link.connection_strength:.0%})"
+                    )
+                context_parts.append(
+                    "Related concepts:\n" + "\n".join(link_parts)
+                )
+
+            external_ctx = "\n\n---\n\n".join(context_parts) if context_parts else None
+            answer = self.chat.chat(goal, external_context=external_ctx)
         else:
             # Use the reasoning engine's answer (already generated)
             answer = reasoning_result.answer
@@ -688,6 +710,14 @@ class AgentLoop:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Ensure project root is on path for standalone execution
+    import os
+    import sys
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
     print("=" * 60)
     print("  AGENT LOOP — Quick Test")
     print("=" * 60 + "\n")

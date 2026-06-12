@@ -20,6 +20,12 @@ Usage:
 import sys
 import os
 
+# Configure stdout/stderr to use UTF-8 on Windows to avoid UnicodeEncodeErrors
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -73,7 +79,7 @@ def cmd_interactive():
             print()
             continue
 
-        answer = system.chat_with_ai(user_input)
+        answer = system.route_query(user_input)
         print(f"\n🤖 {answer}\n")
 
 

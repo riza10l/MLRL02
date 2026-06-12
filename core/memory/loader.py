@@ -3,8 +3,6 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 class Document:
@@ -51,30 +49,31 @@ def chunk_by_headers(content: str) -> List[tuple[str, str]]:
     Splits content by markdown headers (# Header).
     Returns a list of (header_name, section_content).
     """
-    # Pattern to find headers
-    header_pattern = re.compile(r'(^|\n)(#{1,6}\s+.*)')
-    
-    parts = header_pattern.split(content)
-    # parts[0] is text before first header
-    # parts[1] is newline/start
-    # parts[2] is header text
-    # parts[3] is text after header...
+    # Split on newline followed by a markdown header (using positive lookahead)
+    sections = re.split(r'\n(?=#{1,6}\s)', content)
     
     chunks = []
-    
-    # Handle text before any header
-    initial_text = parts[0].strip()
-    if initial_text:
-        chunks.append(("Intro", initial_text))
+    for section in sections:
+        section = section.strip()
+        if not section:
+            continue
+            
+        # Parse the header and content from the section
+        lines = section.split('\n', 1)
+        header_line = lines[0].strip()
         
-    for i in range(2, len(parts), 3):
-        header = parts[i].strip()
-        content_section = parts[i+1].strip() if i+1 < len(parts) else ""
-        chunks.append((header, content_section))
-        
+        # Check if the first line is actually a header
+        if re.match(r'^#{1,6}\s', header_line):
+            header = header_line.lstrip('#').strip()
+            content_section = lines[1].strip() if len(lines) > 1 else ""
+            chunks.append((header, content_section))
+        else:
+            # If no header (e.g., intro text before first header)
+            chunks.append(("Intro", section))
+            
     return chunks
 
-def clean_text(text: str) -> str:
+def _clean_text(text: str) -> str:
     """
     Sanitizes text for AI processing (Task 1.10).
     - Removes image links
@@ -112,7 +111,7 @@ def load_markdown(folder_path: str, chunk: bool = True) -> List[Document]:
                 file_metadata, clean_content = extract_frontmatter(raw_content)
                 
                 # 1.5 Clean content (Task 1.10)
-                clean_content = clean_text(clean_content)
+                clean_content = _clean_text(clean_content)
                 
                 # 2. Base Metadata
                 base_metadata = {

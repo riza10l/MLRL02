@@ -308,6 +308,7 @@ class MemoryContext:
         top_k: int = DEFAULT_TOP_K,
         max_context_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS,
         min_similarity: float = MIN_SIMILARITY,
+        client: Optional[chromadb.PersistentClient] = None,
     ):
         self.persist_dir = persist_dir or EMBEDDINGS_DIR
         self.collection_name = collection_name
@@ -315,19 +316,23 @@ class MemoryContext:
         self.max_context_tokens = max_context_tokens
         self.min_similarity = min_similarity
 
-        self._client: Optional[chromadb.PersistentClient] = None
+        self._client: Optional[chromadb.PersistentClient] = client
         self._collection = None
         self._embed_model: Optional[SentenceTransformer] = None
         self._connect()
 
     def _connect(self):
         """Connect to ChromaDB."""
-        if not os.path.exists(self.persist_dir):
+        if not self._client and not os.path.exists(self.persist_dir):
             return
 
         try:
-            self._client = chromadb.PersistentClient(path=self.persist_dir)
-            self._collection = self._client.get_collection(self.collection_name)
+            if not self._client:
+                self._client = chromadb.PersistentClient(path=self.persist_dir)
+            self._collection = self._client.get_or_create_collection(
+                self.collection_name,
+                metadata={"hnsw:space": "cosine"},
+            )
         except Exception as e:
             print(f"[MemoryContext] ⚠️  ChromaDB connect error: {e}")
             self._collection = None
